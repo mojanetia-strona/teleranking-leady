@@ -41,7 +41,11 @@ select,input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(
 <script>
 const API='https://script.google.com/macros/s/AKfycbwQNL7aow_5VWbDMie-0yj09zC4frmYJguoegtpIcAFV1nO1GZYVc0cT_zxms39x6ymwQ/exec';
 const P=new URLSearchParams(location.search);
-const T=P.get('t')||'';
+// Adres leady.teleranking.pl/operator/imie-nazwisko/ (PIN raz na telefonie) albo stary link ?t=
+const SC=location.pathname.split('/').filter(Boolean);
+const KLUCZ='tr_t_'+SC.slice(0,2).join('/');
+const pam={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
+let T=P.get('t')||(SC.length>=2?pam.get(KLUCZ):'');
 const D={leady:[],statusy:[],powody:[],wybrany:P.get('id')||''};
 let filtr='akt';
 const el=id=>document.getElementById(id);
@@ -52,12 +56,29 @@ const wiersz=(a,b)=>b?'<div class="r"><span>'+esc(a)+':</span> '+esc(b)+'</div>'
 
 function blad(t){el('kto').textContent='';el('lista').innerHTML='<div class="pusto">'+esc(t)+'</div>';}
 
+function formularzPin(komunikat){
+  el('kto').textContent='Wpisz PIN, żeby zobaczyć swoje leady';
+  el('lista').innerHTML='<form class="k pin" id="fpin" style="padding:16px"><input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="PIN" style="font-size:22px;text-align:center;letter-spacing:6px"><button class="z">Wejdź</button><div class="info">'+esc(komunikat||'PIN wpisujesz tylko raz na tym telefonie.')+'</div></form>';
+  el('pin').focus();
+  el('fpin').onsubmit=async ev=>{
+    ev.preventDefault();
+    const z=el('fpin').querySelector('.z');z.disabled=true;
+    try{
+      const r=await fetch(API+'?api=1&op='+encodeURIComponent(SC[0])+'&h='+encodeURIComponent(SC[1])+'&pin='+encodeURIComponent(el('pin').value));
+      const j=await r.json();
+      if(j.ok){T=j.t;pam.set(KLUCZ,T);el('lista').innerHTML='<div class="pusto">Ładuję…</div>';wczytaj();return;}
+      if(!j.pin){blad(j.blad||'Błąd.');return;}
+      formularzPin(j.blad||'Zły PIN.');
+    }catch(e){z.disabled=false;el('fpin').querySelector('.info').textContent='Brak połączenia. Spróbuj jeszcze raz.';}
+  };
+}
+
 async function wczytaj(){
-  if(!T){blad('Link jest nieważny. Skontaktuj się z TeleRanking.');return;}
+  if(!T){if(SC.length>=2)formularzPin();else blad('Link jest nieważny. Skontaktuj się z TeleRanking.');return;}
   try{
     const r=await fetch(API+'?api=1&t='+encodeURIComponent(T));
     const j=await r.json();
-    if(!j.ok){blad(j.blad||'Błąd.');return;}
+    if(!j.ok){if(SC.length>=2&&!P.get('t')){pam.set(KLUCZ,'');T='';formularzPin();return;}blad(j.blad||'Błąd.');return;}
     Object.assign(D,{leady:j.leady,statusy:j.statusy,powody:j.powody});
     el('kto').textContent='Leady: '+j.imie;
     rysuj();

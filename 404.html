@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>TeleRanking: moje leady</title>
+<style>
+:root{--navy:#0A2540;--green:#27AE7A;--green-d:#1F9466;--green-l:#E8F7F0;--bg:#F5FAF7;--line:#dCE9E2;--muted:#5b6b7c;--red:#c0392b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;color:var(--navy)}
+header{background:#fff;color:var(--navy);padding:14px 16px;border-bottom:3px solid var(--green)}header .logo{font-weight:800;font-size:20px;letter-spacing:-.2px}header .logo b{color:var(--green)}header small{display:block;color:var(--muted);margin-top:2px}
+nav{display:flex;gap:8px;padding:12px 16px 0;max-width:640px;margin:0 auto}nav button{flex:1;border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px;font:inherit;color:var(--navy);cursor:pointer}
+nav button.on{background:var(--green);color:#fff;border-color:var(--green)}
+main{padding:12px 16px 40px;max-width:640px;margin:0 auto}
+.k{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.k.wyb{border:2px solid var(--green)}
+.g{padding:12px 14px;display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+.g .t{font-weight:600}.g .m{color:var(--muted);font-size:13px}
+.s{font-size:12px;padding:3px 8px;border-radius:10px;background:#eef2f6;white-space:nowrap;align-self:flex-start}
+.s.czeka{background:#fff3d6;color:#7a5a00}.s.ok{background:var(--green-l);color:var(--green-d)}.s.nie{background:#fbe6e4;color:var(--red)}
+.d{display:none;border-top:1px solid var(--line);padding:12px 14px}.k.otw .d{display:block}
+.r{margin:4px 0;overflow-wrap:anywhere}.r span{color:var(--muted)}
+a.tel{display:block;text-align:center;background:var(--green);color:#fff;text-decoration:none;font-weight:600;padding:12px;border-radius:10px;margin:10px 0}
+.b{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.b button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:12px 8px;font:inherit;color:var(--navy);cursor:pointer}
+.b button.on{background:var(--green);color:#fff;border-color:var(--green)}
+.b button:hover{border-color:var(--green)}
+.ex{display:none;margin-top:8px}.ex.on{display:block}
+select:focus,input:focus,textarea:focus{outline:2px solid var(--green);border-color:var(--green)}
+select,input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:#fff;color:var(--navy)}
+.z{width:100%;margin-top:10px;background:var(--green-d);color:#fff;border:0;border-radius:10px;padding:12px;font:inherit;font-weight:600;cursor:pointer}
+.z:disabled{opacity:.5;cursor:default}.info{font-size:13px;color:var(--muted);margin-top:6px}
+.pusto{text-align:center;color:var(--muted);padding:40px 0}
+</style>
+</head>
+<body>
+<header><div class="logo"><b>Tele</b>Ranking</div><small id="kto">Ładuję leady…</small></header>
+<nav><button class="on" data-f="akt">Do zrobienia</button><button data-f="all">Wszystkie</button></nav>
+<main id="lista"><div class="pusto">Ładuję…</div></main>
+<script>
+const API='https://script.google.com/macros/s/AKfycbwQNL7aow_5VWbDMie-0yj09zC4frmYJguoegtpIcAFV1nO1GZYVc0cT_zxms39x6ymwQ/exec';
+const P=new URLSearchParams(location.search);
+// Adres leady.teleranking.pl/operator/imie-nazwisko/ (PIN raz na telefonie) albo stary link ?t=
+const SC=location.pathname.split('/').filter(Boolean);
+const KLUCZ='tr_t_'+SC.slice(0,2).join('/');
+const pam={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
+let T=P.get('t')||(SC.length>=2?pam.get(KLUCZ):'');
+const D={leady:[],statusy:[],powody:[],wybrany:P.get('id')||''};
+let filtr='akt';
+const el=id=>document.getElementById(id);
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const klasa=s=>s.indexOf('Czeka')==0||s.indexOf('Nie odebrał')==0?'czeka':(s.indexOf('Utracony')==0||s.indexOf('Nieudane')==0?'nie':(s.indexOf('Umowa')==0||s.indexOf('Umówiony')==0?'ok':''));
+const aktywny=l=>l.statusH.indexOf('Czeka')==0||l.statusH.indexOf('Kontakt')==0||l.statusH.indexOf('Nie odebrał')==0||l.id==D.wybrany;
+const wiersz=(a,b)=>b?'<div class="r"><span>'+esc(a)+':</span> '+esc(b)+'</div>':'';
+
+function blad(t){el('kto').textContent='';el('lista').innerHTML='<div class="pusto">'+esc(t)+'</div>';}
+
+function formularzPin(komunikat){
+  el('kto').textContent='Wpisz PIN, żeby zobaczyć swoje leady';
+  el('lista').innerHTML='<form class="k pin" id="fpin" style="padding:16px"><input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="PIN" style="font-size:22px;text-align:center;letter-spacing:6px"><button class="z">Wejdź</button><div class="info">'+esc(komunikat||'PIN wpisujesz tylko raz na tym telefonie.')+'</div></form>';
+  el('pin').focus();
+  el('fpin').onsubmit=async ev=>{
+    ev.preventDefault();
+    const z=el('fpin').querySelector('.z');z.disabled=true;
+    try{
+      const r=await fetch(API+'?api=1&op='+encodeURIComponent(SC[0])+'&h='+encodeURIComponent(SC[1])+'&pin='+encodeURIComponent(el('pin').value));
+      const j=await r.json();
+      if(j.ok){T=j.t;pam.set(KLUCZ,T);el('lista').innerHTML='<div class="pusto">Ładuję…</div>';wczytaj();return;}
+      if(!j.pin){blad(j.blad||'Błąd.');return;}
+      formularzPin(j.blad||'Zły PIN.');
+    }catch(e){z.disabled=false;el('fpin').querySelector('.info').textContent='Brak połączenia. Spróbuj jeszcze raz.';}
+  };
+}
+
+async function wczytaj(){
+  if(!T){if(SC.length>=2)formularzPin();else blad('Link jest nieważny. Skontaktuj się z TeleRanking.');return;}
+  try{
+    const r=await fetch(API+'?api=1&t='+encodeURIComponent(T));
+    const j=await r.json();
+    if(!j.ok){if(SC.length>=2&&!P.get('t')){pam.set(KLUCZ,'');T='';formularzPin();return;}blad(j.blad||'Błąd.');return;}
+    Object.assign(D,{leady:j.leady,statusy:j.statusy,powody:j.powody});
+    el('kto').textContent='Leady: '+j.imie;
+    rysuj();
+  }catch(e){blad('Nie udało się wczytać leadów. Odśwież stronę.');}
+}
+
+function karta(l){
+  return '<div class="k'+(l.id==D.wybrany?' wyb otw':'')+'" id="k-'+esc(l.id)+'">'+
+   '<div class="g" data-otworz><div><div class="t">'+esc(l.klient||'Klient')+' · '+esc(l.operator)+'</div>'+
+   '<div class="m">'+esc(l.id)+' · '+esc(l.rodzaj)+' · '+esc(l.przekazano||l.data)+'</div></div><span class="s '+klasa(l.statusH)+'">'+esc(l.statusH)+'</span></div>'+
+   '<div class="d">'+(l.telefon?'<a class="tel" href="tel:'+esc(l.telefon)+'">Zadzwoń '+esc(l.telefon)+'</a>':'')+
+   wiersz('Adres',l.adres)+wiersz('E-mail',l.email)+l.szczegoly.map(x=>wiersz(x[0],x[1])).join('')+wiersz('Nr umowy',l.nrUmowy)+wiersz('Twoje notatki',l.notatka)+
+   '<div class="b">'+D.statusy.map(s=>'<button data-k="'+esc(s.kod)+'">'+esc(s.etykieta)+'</button>').join('')+'</div>'+
+   '<div class="ex pow"><select><option value="">Powód…</option>'+D.powody.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div>'+
+   '<div class="ex nr"><input placeholder="Numer umowy (opcjonalnie)"></div>'+
+   '<textarea class="not" rows="2" placeholder="Notatka (opcjonalnie)"></textarea>'+
+   '<button class="z" disabled>Zapisz status</button><div class="info"></div></div></div>';
+}
+
+function rysuj(){
+  const L=D.leady.filter(l=>filtr=='all'||aktywny(l));
+  if(!L.length){el('lista').innerHTML='<div class="pusto">'+(filtr=='all'?'Nie masz jeszcze leadów.':'Brak leadów do obsługi.')+'</div>';return;}
+  el('lista').innerHTML=L.map(karta).join('');
+  el('lista').querySelectorAll('.k').forEach(podepnij);
+  const w=el('k-'+D.wybrany); if(w) w.scrollIntoView({block:'start'});
+}
+
+function podepnij(k){
+  const id=k.id.slice(2); let kod='';
+  k.querySelector('[data-otworz]').onclick=()=>k.classList.toggle('otw');
+  k.querySelectorAll('.b button').forEach(btn=>btn.onclick=()=>{
+    k.querySelectorAll('.b button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+    kod=btn.dataset.k;
+    k.querySelector('.pow').classList.toggle('on',kod=='nieudane');
+    k.querySelector('.nr').classList.toggle('on',kod=='podpisana');
+    k.querySelector('.z').disabled=false;
+  });
+  k.querySelector('.z').onclick=async()=>{
+    const info=k.querySelector('.info'), z=k.querySelector('.z');
+    const powod=k.querySelector('.pow select').value;
+    if(kod=='nieudane'&&!powod){info.textContent='Wybierz powód.';return;}
+    z.disabled=true;z.textContent='Zapisuję…';
+    try{
+      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify({t:T,id:id,kod:kod,powod:powod,notatka:k.querySelector('.not').value,nr:k.querySelector('.nr input').value})});
+      const j=await r.json();
+      if(!j.ok) throw new Error(j.blad||'Błąd zapisu');
+      const i=D.leady.findIndex(l=>l.id==id);D.leady[i]=j.lead;D.wybrany=id;rysuj();
+      el('k-'+id).querySelector('.info').textContent='Zapisano. Dziękujemy!';
+    }catch(e){z.disabled=false;z.textContent='Zapisz status';info.textContent='Błąd: '+e.message;}
+  };
+}
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');filtr=b.dataset.f;rysuj();
+});
+wczytaj();
+</script>
+</body>
+</html>
