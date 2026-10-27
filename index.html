@@ -46,8 +46,8 @@ const D={leady:[],statusy:[],powody:[],wybrany:P.get('id')||''};
 let filtr='akt';
 const el=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const klasa=s=>s.indexOf('Czeka')==0?'czeka':(s.indexOf('Nieudane')==0?'nie':(s.indexOf('Umowa')==0||s.indexOf('Umówiony')==0?'ok':''));
-const aktywny=l=>l.statusH.indexOf('Czeka')==0||l.statusH.indexOf('Kontakt')==0||l.id==D.wybrany;
+const klasa=s=>s.indexOf('Czeka')==0||s.indexOf('Nie odebrał')==0?'czeka':(s.indexOf('Utracony')==0||s.indexOf('Nieudane')==0?'nie':(s.indexOf('Umowa')==0||s.indexOf('Umówiony')==0?'ok':''));
+const aktywny=l=>l.statusH.indexOf('Czeka')==0||l.statusH.indexOf('Kontakt')==0||l.statusH.indexOf('Nie odebrał')==0||l.id==D.wybrany;
 const wiersz=(a,b)=>b?'<div class="r"><span>'+esc(a)+':</span> '+esc(b)+'</div>':'';
 
 function blad(t){el('kto').textContent='';el('lista').innerHTML='<div class="pusto">'+esc(t)+'</div>';}
