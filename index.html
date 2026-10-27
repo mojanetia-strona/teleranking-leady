@@ -57,6 +57,7 @@ const wiersz=(a,b)=>b?'<div class="r"><span>'+esc(a)+':</span> '+esc(b)+'</div>'
 function blad(t){el('kto').textContent='';el('lista').innerHTML='<div class="pusto">'+esc(t)+'</div>';}
 
 function formularzPin(komunikat){
+  document.querySelector('nav').style.display='none';
   el('kto').textContent='Wpisz PIN, żeby zobaczyć swoje leady';
   el('lista').innerHTML='<form class="k pin" id="fpin" style="padding:16px"><input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="PIN" style="font-size:22px;text-align:center;letter-spacing:6px"><button class="z">Wejdź</button><div class="info">'+esc(komunikat||'PIN wpisujesz tylko raz na tym telefonie.')+'</div></form>';
   el('pin').focus();
@@ -80,6 +81,7 @@ async function wczytaj(){
     const j=await r.json();
     if(!j.ok){if(SC.length>=2&&!P.get('t')){pam.set(KLUCZ,'');T='';formularzPin();return;}blad(j.blad||'Błąd.');return;}
     Object.assign(D,{leady:j.leady,statusy:j.statusy,powody:j.powody});
+    document.querySelector('nav').style.display='';
     el('kto').textContent='Leady: '+j.imie;
     rysuj();
   }catch(e){blad('Nie udało się wczytać leadów. Odśwież stronę.');}
