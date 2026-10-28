@@ -31,6 +31,7 @@ select:focus,input:focus,textarea:focus{outline:2px solid var(--green);border-co
 select,input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:#fff;color:var(--navy)}
 .z{width:100%;margin-top:10px;background:var(--green-d);color:#fff;border:0;border-radius:10px;padding:12px;font:inherit;font-weight:600;cursor:pointer}
 .z:disabled{opacity:.5;cursor:default}.info{font-size:13px;color:var(--muted);margin-top:6px}
+.zr{background:var(--green-l);color:var(--navy);border-radius:10px;padding:10px 12px;margin-bottom:4px;font-weight:600}.zr span{color:var(--green-d);font-weight:400}
 .pusto{text-align:center;color:var(--muted);padding:40px 0}
 </style>
 </head>
@@ -91,7 +92,7 @@ function karta(l){
   return '<div class="k'+(l.id==D.wybrany?' wyb otw':'')+'" id="k-'+esc(l.id)+'">'+
    '<div class="g" data-otworz><div><div class="t">'+esc(l.klient||'Klient')+' · '+esc(l.operator)+'</div>'+
    '<div class="m">'+esc(l.id)+' · '+esc(l.rodzaj)+' · '+esc(l.przekazano||l.data)+'</div></div><span class="s '+klasa(l.statusH)+'">'+esc(l.statusH)+'</span></div>'+
-   '<div class="d">'+(l.telefon?'<a class="tel" href="tel:'+esc(l.telefon)+'">Zadzwoń '+esc(l.telefon)+'</a>':'')+
+   '<div class="d">'+(l.zrodlo?'<div class="zr"><span>Źródło:</span> '+esc(l.zrodlo)+'</div>':'')+(l.telefon?'<a class="tel" href="tel:'+esc(l.telefon)+'">Zadzwoń '+esc(l.telefon)+'</a>':'')+
    wiersz('Adres',l.adres)+wiersz('E-mail',l.email)+l.szczegoly.map(x=>wiersz(x[0],x[1])).join('')+wiersz('Nr umowy',l.nrUmowy)+wiersz('Twoje notatki',l.notatka)+
    '<div class="b">'+D.statusy.map(s=>'<button data-k="'+esc(s.kod)+'">'+esc(s.etykieta)+'</button>').join('')+'</div>'+
    '<div class="ex pow"><select><option value="">Powód…</option>'+D.powody.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div>'+
