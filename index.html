@@ -32,6 +32,7 @@ select,input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(
 .z{width:100%;margin-top:10px;background:var(--green-d);color:#fff;border:0;border-radius:10px;padding:12px;font:inherit;font-weight:600;cursor:pointer}
 .z:disabled{opacity:.5;cursor:default}.info{font-size:13px;color:var(--muted);margin-top:6px}
 .zr{background:var(--green-l);color:var(--navy);border-radius:10px;padding:10px 12px;margin-bottom:4px;font-weight:600}.zr span{color:var(--green-d);font-weight:400}
+.dtl{display:block;margin-top:10px;font-size:13px;color:var(--muted)}.dtl input{color:var(--navy)}.m b{font-weight:600;color:var(--green-d)}.m b.po{color:var(--red)}
 .pusto{text-align:center;color:var(--muted);padding:40px 0}
 </style>
 </head>
@@ -52,7 +53,25 @@ let filtr='akt';
 const el=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const klasa=s=>s.indexOf('Czeka')==0||s.indexOf('Nie odebrał')==0?'czeka':(s.indexOf('Utracony')==0||s.indexOf('Nieudane')==0?'nie':(s.indexOf('Umowa')==0||s.indexOf('Umówiony')==0?'ok':''));
-const aktywny=l=>l.statusH.indexOf('Czeka')==0||l.statusH.indexOf('Kontakt')==0||l.statusH.indexOf('Nie odebrał')==0||l.id==D.wybrany;
+// Dziś (czas lokalny) jako RRRR-MM-DD
+const dzis=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+const spad=l=>/^(Utracony|Nieudane)/.test(l.statusH);
+const zamkniety=l=>spad(l)||/^Umowa aktywna/.test(l.statusH);
+// Do zrobienia: wszystko otwarte, bez daty zamknięcia albo z datą, która już przyszła
+const aktywny=l=>l.id==D.wybrany||(!zamkniety(l)&&(!l.termin||l.termin<=dzis));
+const nowy=l=>/^Czeka/.test(l.statusH);
+const dataPL=t=>t?t.slice(8,10)+'.'+t.slice(5,7):'';
+// Wszystkie: od najnowszych, spady na dole. Do zrobienia: najpierw nowe (czekają na kontakt), potem terminy od najstarszego (zaległe), potem reszta od najnowszych
+function sortuj(L){
+  const pk=l=>l.przekazanoSort||'';
+  return L.slice().sort((a,b)=>{
+    if(filtr=='all'){if(spad(a)!=spad(b))return spad(a)?1:-1;return pk(b).localeCompare(pk(a));}
+    const g=l=>nowy(l)?0:(l.termin?1:2);
+    if(g(a)!=g(b))return g(a)-g(b);
+    if(g(a)==1&&a.termin!=b.termin)return a.termin.localeCompare(b.termin);
+    return pk(b).localeCompare(pk(a));
+  });
+}
 const wiersz=(a,b)=>b?'<div class="r"><span>'+esc(a)+':</span> '+esc(b)+'</div>':'';
 
 function blad(t){el('kto').textContent='';el('lista').innerHTML='<div class="pusto">'+esc(t)+'</div>';}
@@ -91,18 +110,19 @@ async function wczytaj(){
 function karta(l){
   return '<div class="k'+(l.id==D.wybrany?' wyb otw':'')+'" id="k-'+esc(l.id)+'">'+
    '<div class="g" data-otworz><div><div class="t">'+esc(l.klient||'Klient')+' · '+esc(l.operator)+'</div>'+
-   '<div class="m">'+esc(l.id)+' · '+esc(l.rodzaj)+' · '+esc(l.przekazano||l.data)+'</div></div><span class="s '+klasa(l.statusH)+'">'+esc(l.statusH)+'</span></div>'+
+   '<div class="m">'+esc(l.id)+' · '+esc(l.rodzaj)+' · '+esc(l.przekazano||l.data)+(l.termin?' · <b class="'+(l.termin<dzis&&!zamkniety(l)?'po':'')+'">data zamknięcia '+dataPL(l.termin)+'</b>':'')+'</div></div><span class="s '+klasa(l.statusH)+'">'+esc(l.statusH)+'</span></div>'+
    '<div class="d">'+(l.zrodlo?'<div class="zr"><span>Źródło:</span> '+esc(l.zrodlo)+'</div>':'')+(l.telefon?'<a class="tel" href="tel:'+esc(l.telefon)+'">Zadzwoń '+esc(l.telefon)+'</a>':'')+
    wiersz('Adres',l.adres)+wiersz('E-mail',l.email)+l.szczegoly.map(x=>wiersz(x[0],x[1])).join('')+wiersz('Nr umowy',l.nrUmowy)+wiersz('Twoje notatki',l.notatka)+
    '<div class="b">'+D.statusy.map(s=>'<button data-k="'+esc(s.kod)+'">'+esc(s.etykieta)+'</button>').join('')+'</div>'+
    '<div class="ex pow"><select><option value="">Powód…</option>'+D.powody.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div>'+
    '<div class="ex nr"><input placeholder="Numer umowy (opcjonalnie)"></div>'+
+   '<label class="dtl">Data zamknięcia (kiedy wrócić do klienta, np. termin montażu)<input type="date" class="dt" value="'+esc(l.termin)+'"></label>'+
    '<textarea class="not" rows="2" placeholder="Notatka (opcjonalnie)"></textarea>'+
-   '<button class="z" disabled>Zapisz status</button><div class="info"></div></div></div>';
+   '<button class="z" disabled>Zapisz</button><div class="info"></div></div></div>';
 }
 
 function rysuj(){
-  const L=D.leady.filter(l=>filtr=='all'||aktywny(l));
+  const L=sortuj(D.leady.filter(l=>filtr=='all'||aktywny(l)));
   if(!L.length){el('lista').innerHTML='<div class="pusto">'+(filtr=='all'?'Nie masz jeszcze leadów.':'Brak leadów do obsługi.')+'</div>';return;}
   el('lista').innerHTML=L.map(karta).join('');
   el('lista').querySelectorAll('.k').forEach(podepnij);
@@ -119,6 +139,9 @@ function podepnij(k){
     k.querySelector('.nr').classList.toggle('on',kod=='podpisana');
     k.querySelector('.z').disabled=false;
   });
+  const odblokuj=()=>{k.querySelector('.z').disabled=false;};
+  k.querySelector('.dt').addEventListener('input',odblokuj);
+  k.querySelector('.not').addEventListener('input',odblokuj);
   k.querySelector('.z').onclick=async()=>{
     const info=k.querySelector('.info'), z=k.querySelector('.z');
     const powod=k.querySelector('.pow select').value;
@@ -126,12 +149,12 @@ function podepnij(k){
     z.disabled=true;z.textContent='Zapisuję…';
     try{
       const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body:JSON.stringify({t:T,id:id,kod:kod,powod:powod,notatka:k.querySelector('.not').value,nr:k.querySelector('.nr input').value})});
+        body:JSON.stringify({t:T,id:id,kod:kod,powod:powod,notatka:k.querySelector('.not').value,nr:k.querySelector('.nr input').value,termin:k.querySelector('.dt').value})});
       const j=await r.json();
       if(!j.ok) throw new Error(j.blad||'Błąd zapisu');
       const i=D.leady.findIndex(l=>l.id==id);D.leady[i]=j.lead;D.wybrany=id;rysuj();
       el('k-'+id).querySelector('.info').textContent='Zapisano. Dziękujemy!';
-    }catch(e){z.disabled=false;z.textContent='Zapisz status';info.textContent='Błąd: '+e.message;}
+    }catch(e){z.disabled=false;z.textContent='Zapisz';info.textContent='Błąd: '+e.message;}
   };
 }
 
