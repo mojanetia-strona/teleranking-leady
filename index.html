@@ -111,7 +111,7 @@ function karta(l){
   return '<div class="k'+(l.id==D.wybrany?' wyb otw':'')+'" id="k-'+esc(l.id)+'">'+
    '<div class="g" data-otworz><div><div class="t">'+esc(l.klient||'Klient')+' · '+esc(l.operator)+'</div>'+
    '<div class="m">'+esc(l.id)+' · '+esc(l.rodzaj)+' · '+esc(l.przekazano||l.data)+(l.termin?' · <b class="'+(l.termin<dzis&&!zamkniety(l)?'po':'')+'">data działania '+dataPL(l.termin)+'</b>':'')+'</div></div><span class="s '+klasa(l.statusH)+'">'+esc(l.statusH)+'</span></div>'+
-   '<div class="d">'+(l.zrodlo?'<div class="zr"><span>Źródło:</span> '+esc(l.zrodlo)+'</div>':'')+(l.telefon?'<a class="tel" href="tel:'+esc(l.telefon)+'">Zadzwoń '+esc(l.telefon)+'</a>':'')+
+   '<div class="d">'+(l.komentarz?'<div class="zr" style="white-space:pre-line"><span>Komentarz:</span> '+esc(l.komentarz)+'</div>':l.zrodlo?'<div class="zr"><span>Źródło:</span> '+esc(l.zrodlo)+'</div>':'')+(l.telefon?'<a class="tel" href="tel:'+esc(l.telefon)+'">Zadzwoń '+esc(l.telefon)+'</a>':'')+
    wiersz('Adres',l.adres)+wiersz('E-mail',l.email)+l.szczegoly.map(x=>wiersz(x[0],x[1])).join('')+wiersz('Nr umowy',l.nrUmowy)+wiersz('Twoje notatki',l.notatka)+
    '<div class="b">'+D.statusy.map(s=>'<button data-k="'+esc(s.kod)+'">'+esc(s.etykieta)+'</button>').join('')+'</div>'+
    '<div class="ex pow"><select><option value="">Powód…</option>'+D.powody.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div>'+
